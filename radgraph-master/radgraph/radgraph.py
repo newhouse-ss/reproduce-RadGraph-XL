@@ -22,19 +22,19 @@ from radgraph.dygie.models import dygie
 
 from radgraph.utils import download_model
 from radgraph.utils import (
-    preprocess_reports,
-    postprocess_reports,
+    preprocess_reports,#role
+    postprocess_reports,#role
     batch_to_device,
 )
 
 from radgraph.rewards import compute_reward
 from appdirs import user_cache_dir
 
-logging.getLogger("radgraph").setLevel(logging.CRITICAL)
+logging.getLogger("radgraph").setLevel(logging.CRITICAL)#only print when critical error happens.
 logging.getLogger("allennlp").setLevel(logging.CRITICAL)
-warnings.simplefilter("default", category=DeprecationWarning)
+warnings.simplefilter("default", category=DeprecationWarning)#"error", "ignore", "always", "default", "module", or "once"
 
-MODEL_MAPPING = {
+MODEL_MAPPING = {#these are pre-trained models
     "radgraph": "radgraph.tar.gz",
     "radgraph-xl": "radgraph-xl.tar.gz",
     "modern-radgraph-xl": "modern-radgraph-xl.tar.gz",
@@ -43,22 +43,22 @@ MODEL_MAPPING = {
 
 version = importlib.metadata.version('radgraph')
 CACHE_DIR = user_cache_dir("radgraph")
-CACHE_DIR = os.path.join(CACHE_DIR, version)
+CACHE_DIR = os.path.join(CACHE_DIR, version)#create independent cache dictionary for different version of radgraph. reproduce friendly
 
 
 class RadGraph(nn.Module):
     def __init__(
-            self,
-            batch_size=1,
+            self,#objective
+            batch_size=1,#initialize batch_size
             cuda=None,
             model_type=None,
-            temp_dir=None,  # Deprecated
-            model_cache_dir=None,  # New variable
-            tokenizer_cache_dir=None,
-            **kwargs
+            temp_dir=None,  #? Deprecated
+            model_cache_dir=None,  #? New variable
+            tokenizer_cache_dir=None,#load tokenizer from this dictionary
+            **kwargs#?
     ):
 
-        super().__init__()
+        super().__init__()#?
         # Device handling. For now we stick to cpu.
 
         if cuda is None:
@@ -78,25 +78,25 @@ class RadGraph(nn.Module):
         assert model_type in ["radgraph", "radgraph-xl", "echograph","modern-radgraph-xl"]
 
         # Handle temp_dir deprecation
-        if temp_dir is not None:
+        if temp_dir is not None:#?What is in  temp_dir?
             warnings.warn(
                 "'temp_dir' is deprecated and will be removed in future versions. Please use 'model_cache_dir' instead.",
                 DeprecationWarning
             )
             model_cache_dir = temp_dir  # Use temp_dir value if provided
 
-        if model_cache_dir is None:
-            model_cache_dir = CACHE_DIR  # Default value
+        if model_cache_dir is None:#temp_dir and model_cache_dir are not provided
+            model_cache_dir = CACHE_DIR  # Default value, there're 4 models
 
         model_dir = os.path.join(model_cache_dir, model_type)
 
-        if not os.path.exists(model_dir) or not os.listdir(model_dir):
+        if not os.path.exists(model_dir) or not os.listdir(model_dir):#
             os.makedirs(model_dir, exist_ok=True)
             try:
                 archive_path = download_model(
                     repo_id="StanfordAIMI/RRG_scorers",
                     cache_dir=model_cache_dir,
-                    filename=MODEL_MAPPING[model_type],
+                    filename=MODEL_MAPPING[model_type],#tarfile is downloaded.
                 )
             except Exception as e:
                 raise Exception(e)
@@ -107,26 +107,26 @@ class RadGraph(nn.Module):
         # Read config.
         config_path = os.path.join(model_dir, "config.json")
         config = json.load(open(config_path))
-        config = DotMap(config)
+        config = DotMap(config)#config[A]-->config.A
 
-        # Vocab
+        #? Vocab, what is vocabulary
         vocab_dir = os.path.join(model_dir, "vocabulary")
-        vocab_params = config.get("vocabulary", Params({}))
+        vocab_params = config.get("vocabulary", Params({}))#?datatype, did not find 'vocabulary' in config.json
         vocab = Vocabulary.from_files(
-            vocab_dir, vocab_params.get("padding_token"), vocab_params.get("oov_token")
+            vocab_dir, vocab_params.get("padding_token"), vocab_params.get("oov_token")#?what is padding_token and ovv_token
         )
 
-        # Tokenizer
+        #? Tokenizer, what is tokenizer?
         tok_indexers = {
             "bert": token_indexers.PretrainedTransformerMismatchedIndexer(
                 model_name=config.dataset_reader.token_indexers.bert.model_name,
-                max_length=config.dataset_reader.token_indexers.bert.max_length,
-                cache_dir=tokenizer_cache_dir,
+                max_length=config.dataset_reader.token_indexers.bert.max_length,#?max_length == 512, meaning
+                cache_dir=tokenizer_cache_dir,#?where tokenizer_cache_dir is defined??
             )
         }
         self.reader = DyGIEReader(max_span_width=config.dataset_reader.max_span_width, token_indexers=tok_indexers)
 
-        # Create embedder
+        #? Create embedder, what is embedder?
         token_embedder = token_embedders.PretrainedTransformerMismatchedEmbedder(
             model_name=config.model.embedder.token_embedders.bert.model_name,
             max_length=config.model.embedder.token_embedders.bert.max_length
@@ -136,7 +136,7 @@ class RadGraph(nn.Module):
         # Model
         model_dict = config.model
         for name in ["type", "embedder", "initializer", "module_initializer"]:
-            del model_dict[name]
+            del model_dict[name]#why delete?
 
         model = dygie.DyGIE(vocab=vocab,
                             embedder=embedder,
@@ -158,7 +158,7 @@ class RadGraph(nn.Module):
 
         assert isinstance(hyps, str) or isinstance(hyps, list)
         if isinstance(hyps, str):
-            hyps = [hyps]
+            hyps = [hyps]#list a string
 
         hyps = ["None" if not s else s for s in hyps]
 
@@ -191,11 +191,11 @@ class F1RadGraph(nn.Module):
     ):
 
         super().__init__()
-        assert reward_level in ["simple", "partial", "complete", "all"]
+        assert reward_level in ["simple", "partial", "complete", "all"]##each meaning
         self.reward_level = reward_level
-        self.radgraph = RadGraph(model_type=model_type, **kwargs)
+        self.radgraph = RadGraph(model_type=model_type, **kwargs)##kwargs
 
-    def forward(self, refs, hyps):
+    def forward(self, refs, hyps):#refs, hyps
         # Checks
         assert isinstance(hyps, str) or isinstance(hyps, list)
         assert isinstance(refs, str) or isinstance(refs, list)
@@ -205,7 +205,7 @@ class F1RadGraph(nn.Module):
         if isinstance(hyps, str):
             refs = [refs]
 
-        assert len(refs) == len(hyps)
+        assert len(refs) == len(hyps)#why
 
         # getting empty report list
         number_of_reports = len(hyps)
