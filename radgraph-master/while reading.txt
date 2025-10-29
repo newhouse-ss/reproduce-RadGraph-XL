@@ -1,0 +1,10 @@
+pip install torch>=2.1.0 transformers>=4.39.0 appdirs jsonpickle filelock h5py nltk dotmap pytest
+	？DyGIE是基于pytorch构建的
+	transformer加载 BERT 模型的 Tokenizer (分词器) 和 Embedder (词嵌入层)
+	appdirs：辅助库，用来查找存放缓存的路径。
+	？jsonpickle：一个用于将复杂的 Python 对象（如自定义类的实例）序列化为 JSON 格式的库。//详细解释，什么是JSON库？
+	filelock：防止多个进程同时操作同一个文件
+	h5py：allennlp 等深度学习库的常见依赖，有时用于高效地存储和加载大型数据集或词向量。
+	nltk：utils.py 中的 preprocess_reports (预处理) 函数使用，来进行一些基础的 NLP 任务，例如分句或分词
+	dotmap：字典访问工具，改变访问字典的方法，可读性增加：config["model"] ["embedder"]-->config.model.embedder.
+	pytest：python测试框架，在test.py中会用到。
