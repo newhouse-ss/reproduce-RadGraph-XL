@@ -136,7 +136,7 @@ class RadGraph(nn.Module):
         # Model
         model_dict = config.model
         for name in ["type", "embedder", "initializer", "module_initializer"]:
-            del model_dict[name]#why delete?
+            del model_dict[name]#?why delete? 2025/10/29
 
         model = dygie.DyGIE(vocab=vocab,
                             embedder=embedder,
